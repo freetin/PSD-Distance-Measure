@@ -61,26 +61,37 @@ char tx_buf[20];
 uint8_t rx_data,rx_count;
 uint8_t adc1flag,adc2flag,adc3flag;
 uint32_t adc1,dac_value;
+
+uint16_t nn = 0x1234;
+
+uint8_t num ;
 float adc_volt;
 float volt_rate,volt_fi;
-float Psd_Lx = 11.62;
+float Psd_Lx = 12.0;
 float postion_x=0,filtered_volt_rate=0.0f,alpha=0.5f,postion_x1=0,postion_x2=0;
-float adc1_ave,adc2_ave,adc3_ave;
+float adc1_ave,adc2_ave,adc3_ave=2.048;
 	uint8_t buff[6]={1};
 float kalman_volt,kalman_px;
 
 uint8_t bb=3;
-#define ADC_BUFFER_SIZE 6
+#define ADC_BUFFER_SIZE 16
 ALIGN_32BYTES (uint16_t adc3_value[ADC_BUFFER_SIZE]) __attribute__((section(".ARM.__at_0x38000000")));
 uint16_t adc1_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24000000")));
 uint16_t adc2_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24010000")));
 uint8_t aa=6;
 uint8_t test_char = 0x00;
+uint8_t add[2];
+uint16_t myid;
+uint32_t i;
+	
+	
+uint16_t * p;	
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
+//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,7 +110,10 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	//num = (uint8_t)nn;
+	p = &nn;
+	
+	p= (&nn)+1;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -144,11 +158,13 @@ int main(void)
 	HAL_ADCEx_Calibration_Start(&hadc2,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
 	HAL_ADCEx_Calibration_Start(&hadc3,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
 	//unsigned char buf_w[] = {0x11, 0x22, 0x33};
-	I2CWrite(0x120, &aa, 1); // ?????0x1A3F
+	//I2CWrite(0x120, &aa, 1); // ?????0x1A3F
 	HAL_Delay(1000);
 	// ????
 	//unsigned char buf_r[10];
-	I2CRead(0x120, &bb, 1); // ?0x2000??10??
+	//I2CRead(0x120, &bb, 1); // ?0x2000??10??
+	I2C_FDC_Read(0x7F, add, 2);
+	myid = add[0]<<8 || add[1];
 //	
 //	//HAL_UARTEx_ReceiveToIdle_DMA(&huart1,rx_buf,25);
 //	
@@ -158,10 +174,11 @@ int main(void)
 	dac_value=1.5 * 4095 /2.5;
 	//HAL_DAC_SetValue(&hdac1,DAC_CHANNEL_1,DAC_ALIGN_12B_R,dac_value);
 	//HAL_DAC_Start(&hdac1,DAC_CHANNEL_1);
-	LowPassFilter low_filter;
+	//LowPassFilter low_filter;
 	//MovingAverageFilter* filter = createMovingAverageFilter(3);
-	initLowPassFilter(&low_filter,0.5,0.4);
-	VoltRatioFilter* filter = create_volt_ratio_filter(12, 2, 0.1, 0.2);
+	
+	//initLowPassFilter(&low_filter,0.5,0.4);
+	//VoltRatioFilter* filter = create_volt_ratio_filter(12, 2, 0.1, 0.2);
 	MovingAverageFilter *voltaverage = createMovingAverageFilter(20);
 	//uint8_t res;
 	//res = AT24CXX_Check();
@@ -215,7 +232,8 @@ int main(void)
                 sum += (uint32_t)adc3_value[i];
             }  
             float average = (float)sum / ADC_BUFFER_SIZE;  
-            adc3_ave = average * 3.0f / 65535.0f;  
+            //adc3_ave = average * 3.0f / 65535.0f;
+			adc3_ave=2.048;
             adc3flag = 0; // ?????  
         }
 		if(adc1_ave > adc2_ave)
@@ -223,18 +241,21 @@ int main(void)
 			postion_x=(adc1_ave-adc2_ave)*Psd_Lx/(-(adc1_ave+adc2_ave)+2*adc3_ave)/2;
 			volt_rate= (adc1_ave-adc3_ave)/(adc2_ave-adc3_ave);
 			if(adc2_ave-adc3_ave==0) volt_rate=0.0f;
-			postion_x=(adc1_ave-adc2_ave)*Psd_Lx/((adc1_ave-adc3_ave)+(adc2_ave-adc3_ave))/2;
+			//postion_x=-(adc1_ave-adc2_ave)*Psd_Lx/((adc1_ave-adc3_ave)+(adc2_ave-adc3_ave))/2;
 		}
 		else
 		{
 			volt_rate= (adc2_ave-adc3_ave)/(adc1_ave-adc3_ave);
 			if(adc1_ave-adc3_ave==0) volt_rate=0.0f;
 			postion_x=(adc2_ave-adc1_ave)*Psd_Lx/(-(adc1_ave+adc2_ave)+2*adc3_ave)/2;
-			//postion_x=(adc2_ave-adc1_ave)*Psd_Lx/((adc2_ave-adc3_ave)+(adc1_ave-adc3_ave))/2;
+			//postion_x=-(adc2_ave-adc1_ave)*Psd_Lx/((adc2_ave-adc3_ave)+(adc1_ave-adc3_ave))/2;
 		}
-		postion_x1 = Psd_Lx * (1.0f - volt_rate)/(1+volt_rate)/2.0f; 
+		i++;
+		HAL_Delay(10);
+		
+//		postion_x1 = Psd_Lx * (1.0f - volt_rate)/(1+volt_rate)/2.0f; 
         volt_fi= updateMovingAverage(voltaverage,volt_rate);
-		postion_x2=Psd_Lx * (1.0f - volt_fi)/(1+volt_fi)/2.0f;
+//		postion_x2=Psd_Lx * (1.0f - volt_fi)/(1+volt_fi)/2.0f;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -299,7 +320,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
-
 /**
   * @brief Peripherals Common Clock Configuration
   * @retval None

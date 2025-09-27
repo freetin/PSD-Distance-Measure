@@ -4,8 +4,8 @@
 
 #include "i2c_hal.h"
 
-#define DELAY_TIME	9
-
+//#define DELAY_TIME	9
+#define DELAY_TIME	2
 
 
 // ≥ı ºªØ DWT
@@ -272,6 +272,41 @@ void I2CRead(unsigned int addr , unsigned char *data,unsigned char num)
 	I2CStart();
 	
 	I2CSendByte(0xa1);
+	I2CWaitAck();
+	
+	
+	while(num--)
+	{
+		if(num)
+		{
+			*data++=I2CReceiveByte();
+			I2CSendAck();
+		}
+		else
+		{
+			*data++=I2CReceiveByte();
+			I2CSendNotAck();
+		}
+	
+	}
+	I2CStop();
+	 delay1(DELAY_TIME);
+}
+
+
+void I2C_FDC_Read(unsigned int addr , unsigned char *data,unsigned char num)
+{
+	I2CStart();
+	
+	I2CSendByte(0x2A<<1);
+	I2CWaitAck();
+	
+	I2CSendByte((unsigned char)(addr));  // ?8?
+    I2CWaitAck();
+	
+	I2CStart();
+	
+	I2CSendByte(0x2A<<1 |0X01);
 	I2CWaitAck();
 	
 	

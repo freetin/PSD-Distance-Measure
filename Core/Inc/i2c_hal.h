@@ -15,4 +15,5 @@ void I2CInit(void);
 
 void I2CRead(unsigned int addr , unsigned char *data,unsigned char num);
 void I2CWrite(unsigned int addr , unsigned char *data,unsigned char num);
+void I2C_FDC_Read(unsigned int addr , unsigned char *data,unsigned char num);
 #endif

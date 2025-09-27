@@ -254,7 +254,7 @@ void DMA1_Stream2_IRQHandler(void)
 void DMA1_Stream3_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
-		if(  __HAL_DMA_GET_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7) != RESET )
+		if( __HAL_DMA_GET_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7) != RESET )
 	{
 		adc2flag=1;
 		__HAL_DMA_CLEAR_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7);
