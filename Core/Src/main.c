@@ -23,7 +23,7 @@
 #include "dac.h"
 #include "dma.h"
 #include "i2c.h"
-#include "memorymap.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -62,7 +62,6 @@ uint8_t rx_data,rx_count;
 uint8_t adc1flag,adc2flag,adc3flag;
 uint32_t adc1,dac_value;
 
-uint16_t nn = 0x1234;
 
 uint8_t num ;
 float adc_volt;
@@ -74,24 +73,23 @@ float adc1_ave,adc2_ave,adc3_ave=2.048;
 float kalman_volt,kalman_px;
 
 uint8_t bb=3;
-#define ADC_BUFFER_SIZE 16
+#define ADC_BUFFER_SIZE 64
+	
 ALIGN_32BYTES (uint16_t adc3_value[ADC_BUFFER_SIZE]) __attribute__((section(".ARM.__at_0x38000000")));
-uint16_t adc1_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24000000")));
-uint16_t adc2_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24010000")));
-uint8_t aa=6;
+uint32_t adc1_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24000000")));
+uint32_t adc2_value[ADC_BUFFER_SIZE]__attribute__((section(".ARM.__at_0x24010000")));
+	
 uint8_t test_char = 0x00;
 uint8_t add[2];
 uint16_t myid;
 uint32_t i;
 	
 	
-uint16_t * p;	
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
-//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -106,14 +104,10 @@ void PeriphCommonClock_Config(void);
   * @retval int
   */
 int main(void)
-
 {
 
   /* USER CODE BEGIN 1 */
 	//num = (uint8_t)nn;
-	p = &nn;
-	
-	p= (&nn)+1;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -144,10 +138,9 @@ int main(void)
   MX_ADC2_Init();
   MX_ADC3_Init();
   MX_DAC1_Init();
-  //MX_I2C1_Init();
+  MX_I2C1_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
-	//EventRecorderInitialize(EventRecordAll, 1U); 
-	//EventRecorderStart();
 	DWT_Init();
 	I2CInit();
 	
@@ -164,21 +157,15 @@ int main(void)
 	//unsigned char buf_r[10];
 	//I2CRead(0x120, &bb, 1); // ?0x2000??10??
 	I2C_FDC_Read(0x7F, add, 2);
-	myid = add[0]<<8 || add[1];
-//	
-//	//HAL_UARTEx_ReceiveToIdle_DMA(&huart1,rx_buf,25);
-//	
-	HAL_ADC_Start_DMA(&hadc1,(uint32_t*)&adc1_value,ADC_BUFFER_SIZE);
-	HAL_ADC_Start_DMA(&hadc2,(uint32_t*)&adc2_value,ADC_BUFFER_SIZE);
-	HAL_ADC_Start_DMA(&hadc3,(uint32_t*)&adc3_value,ADC_BUFFER_SIZE);
-	dac_value=1.5 * 4095 /2.5;
+	myid = add[0]<<8 || add[1];	
+	
+	HAL_ADC_Start(&hadc2);
+	memset(adc1_value, 0, sizeof(adc1_value));
+	HAL_ADCEx_MultiModeStart_DMA(&hadc1,(uint32_t *)adc1_value,ADC_BUFFER_SIZE);
+	HAL_TIM_Base_Start(&htim8);
 	//HAL_DAC_SetValue(&hdac1,DAC_CHANNEL_1,DAC_ALIGN_12B_R,dac_value);
 	//HAL_DAC_Start(&hdac1,DAC_CHANNEL_1);
-	//LowPassFilter low_filter;
-	//MovingAverageFilter* filter = createMovingAverageFilter(3);
 	
-	//initLowPassFilter(&low_filter,0.5,0.4);
-	//VoltRatioFilter* filter = create_volt_ratio_filter(12, 2, 0.1, 0.2);
 	MovingAverageFilter *voltaverage = createMovingAverageFilter(20);
 	//uint8_t res;
 	//res = AT24CXX_Check();
@@ -199,31 +186,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-         
-	  if (adc1flag == 1)  
-        {  
-            uint32_t sum = 0;  
-            for (int i = 0; i < ADC_BUFFER_SIZE; i++)  
-            {  
-                sum += (uint32_t)adc1_value[i];
-            }  
-            float average = (float)sum / ADC_BUFFER_SIZE;  
-            adc1_ave = average * 3.0f / 65535.0f;  
-            adc1flag = 0; 
-        }
-		if (adc2flag == 1)  
-        {  
-            uint32_t sum = 0;  
-            for (int i = 0; i < ADC_BUFFER_SIZE; i++)  
-            {  
-                sum += (uint32_t)adc2_value[i];
-            }  
-            float average = (float)sum / ADC_BUFFER_SIZE;  
-            adc2_ave = average * 3.0f / 65535.0f;  
-            adc2flag = 0; // ?????  
-        }
-		
+  {	
 		if (adc3flag == 1)  
         {  
             uint32_t sum = 0;  
@@ -320,6 +283,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
+
 /**
   * @brief Peripherals Common Clock Configuration
   * @retval None
@@ -352,6 +316,41 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	rx_buf[rx_count++]=rx_data;
 	HAL_UART_Receive_IT(&huart1,&rx_data,1);
 }
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	
+	uint32_t adc1_sum = 0;
+	uint32_t adc2_sum = 0;
+	for(int i = ADC_BUFFER_SIZE / 2 ;i < ADC_BUFFER_SIZE;i++)
+	{
+		uint32_t combined_data = adc1_value[i];
+        adc1_sum += combined_data & 0xFFFF;        // ADC1���ݣ���16λ��
+        adc2_sum = (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
+	}
+	adc1_ave= adc1_sum/ADC_BUFFER_SIZE/2;
+	adc2_ave= adc2_sum/ADC_BUFFER_SIZE/2;
+	
+	adc1_ave = adc1_ave * 3.3/65535;
+	adc2_ave = adc1_ave * 3.3/65535;
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	uint32_t adc1_sum = 0;
+	uint32_t adc2_sum = 0;
+	for(int i = 0 ;i < ADC_BUFFER_SIZE/2;i++)
+	{
+		uint32_t combined_data = adc1_value[i];
+        adc1_sum += combined_data & 0xFFFF;        // ADC1���ݣ���16λ��
+        adc2_sum = (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
+	}
+	adc1_ave= adc1_sum/ADC_BUFFER_SIZE/2;
+	adc2_ave= adc2_sum/ADC_BUFFER_SIZE/2;
+	
+	adc1_ave = adc1_ave * 3.3/65535;
+	adc2_ave = adc1_ave * 3.3/65535;
+}
 /* USER CODE END 4 */
 
 /**
@@ -368,8 +367,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

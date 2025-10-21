@@ -210,7 +210,7 @@ void DMA1_Stream0_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 	
   /* USER CODE END DMA1_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_rx);
+  HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
 
   /* USER CODE END DMA1_Stream0_IRQn 1 */
@@ -236,13 +236,13 @@ void DMA1_Stream1_IRQHandler(void)
 void DMA1_Stream2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream2_IRQn 0 */
-		if(  __HAL_DMA_GET_FLAG(&hdma_adc1,DMA_FLAG_TCIF2_6) != RESET )
-	{
-		adc1flag=1;
-		__HAL_DMA_CLEAR_FLAG(&hdma_adc1,DMA_FLAG_TCIF2_6);
-	}
+//		if(  __HAL_DMA_GET_FLAG(&hdma_adc1,DMA_FLAG_TCIF2_6) != RESET )
+//	{
+//		adc1flag=1;
+//		__HAL_DMA_CLEAR_FLAG(&hdma_adc1,DMA_FLAG_TCIF2_6);
+//	}
   /* USER CODE END DMA1_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
+  HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA1_Stream2_IRQn 1 */
 
   /* USER CODE END DMA1_Stream2_IRQn 1 */
@@ -254,11 +254,11 @@ void DMA1_Stream2_IRQHandler(void)
 void DMA1_Stream3_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
-		if( __HAL_DMA_GET_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7) != RESET )
-	{
-		adc2flag=1;
-		__HAL_DMA_CLEAR_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7);
-	}
+//		if( __HAL_DMA_GET_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7) != RESET )
+//	{
+//		adc2flag=1;
+//		__HAL_DMA_CLEAR_FLAG(&hdma_adc2,DMA_FLAG_TCIF3_7);
+//	}
   /* USER CODE END DMA1_Stream3_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc2);
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
