@@ -233,7 +233,7 @@ int main(void)
             }  
             float average = (float)sum / ADC_BUFFER_SIZE;  
             //adc3_ave = average * 3.0f / 65535.0f;
-			adc3_ave=2.048;
+			adc3_ave=2.5;
             adc3flag = 0; // ?????  
         }
 		if(adc1_ave > adc2_ave)
