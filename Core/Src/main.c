@@ -326,7 +326,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 	{
 		uint32_t combined_data = adc1_value[i];
         adc1_sum += combined_data & 0xFFFF;        // ADC1���ݣ���16λ��
-        adc2_sum = (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
+        adc2_sum += (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
 	}
 	adc1_ave= adc1_sum/ADC_BUFFER_SIZE/2;
 	adc2_ave= adc2_sum/ADC_BUFFER_SIZE/2;
@@ -343,7 +343,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	{
 		uint32_t combined_data = adc1_value[i];
         adc1_sum += combined_data & 0xFFFF;        // ADC1���ݣ���16λ��
-        adc2_sum = (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
+        adc2_sum += (combined_data >> 16) & 0xFFFF; // ADC2���ݣ���16λ��
 	}
 	adc1_ave= adc1_sum/ADC_BUFFER_SIZE/2;
 	adc2_ave= adc2_sum/ADC_BUFFER_SIZE/2;
